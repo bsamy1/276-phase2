@@ -32,6 +32,7 @@ build-backend = "hatchling.build"
 dev = [
     "pytest>=9.0.1",
     "ruff>=0.14.4",
+    "countryinfo>=0.1.2"
 ]
 
 
