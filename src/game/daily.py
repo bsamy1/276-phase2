@@ -6,7 +6,7 @@ def get_daily_country() -> Country:
     Gets a country for today's date, deterministically
     """
     country = get_random_country()
-    pass
+    return country
 
 
 def handle_guess(input: str) -> bool:

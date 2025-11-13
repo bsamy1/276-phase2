@@ -1,0 +1,6 @@
+line-length = 100
+target-version = "py313"
+exclude = [".venv", "venv", "alembic", ".github"]
+
+[lint]
+select = ["E", "F", "I"]

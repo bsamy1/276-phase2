@@ -1,6 +1,8 @@
-from typing import List
 import random
+from typing import List
+
 from countryinfo import CountryInfo
+
 
 class Country:
     name: str
@@ -23,7 +25,7 @@ class Country:
 
 def map_to_country_obj(country_info_obj: CountryInfo) -> Country:
     info = country_info_obj.info()
-    
+
     name = info.get("name", "")
     population = info.get("population", 0)
     size = info.get("area", 0.0)
@@ -31,8 +33,9 @@ def map_to_country_obj(country_info_obj: CountryInfo) -> Country:
     languages = info.get("languages", [])
     currencies = info.get("currencies", [])
     timezones = info.get("timezones", [])
-    
+
     return Country(name, population, size, region, languages, currencies, timezones)
+
 
 def get_random_country() -> Country:
     """
@@ -41,7 +44,7 @@ def get_random_country() -> Country:
     all_countries = CountryInfo().all()
     random_country_name = random.choice(list(all_countries.keys()))
     obj = CountryInfo(random_country_name)
-    
+
     return map_to_country_obj(obj)
 
 
@@ -54,6 +57,4 @@ def get_country(name: str) -> Country:
         country = CountryInfo(name)
         return map_to_country_obj(country)
     except KeyError:
-        return None
-    except:
         return None
