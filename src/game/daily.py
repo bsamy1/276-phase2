@@ -29,13 +29,13 @@ def handle_guess(input: str, round_stats: RoundStats):
 
     # TODO: Remove placeholder feedback
     feedback = GuessFeedback(
-        name=0,
+        name=False,
         population=Comparison.LESS_THAN,
         size=Comparison.LESS_THAN,
         currencies=Comparison.PARTIAL_OVERLAP,
         languages=Comparison.NO_OVERLAP,
         timezones=Comparison.PARTIAL_OVERLAP,
-        region=1,
+        region=True,
     )
 
     if feedback.name:  # correct guess

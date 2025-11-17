@@ -84,30 +84,36 @@ def content():
         with guesses:
             for attr, value in vars(feedback).items():
                 classes = "aspect-square h-24 justify-center text-center "
+                style = None
                 match value:
                     case Comparison.GREATER_THAN:
                         classes += similar_bg
+                        style = greater_than_arrow
                     case Comparison.LESS_THAN:
                         classes += similar_bg
+                        style = less_than_arrow
                     case Comparison.NO_OVERLAP:
                         classes += incorrect_bg
                     case Comparison.PARTIAL_OVERLAP:
                         classes += similar_bg
-                    case 1:
+                if isinstance(value, bool):
+                    if value:
                         classes += correct_bg
-                    case 0:
+                    else:
                         classes += incorrect_bg
+
                 with ui.card(align_items="center").classes(classes):
-                    ui.element("div").classes("absolute inset-0 bg-black/40 -z-10").style(
-                        greater_than_arrow
-                    )
+                    if style:
+                        ui.element("div").classes("absolute inset-0 bg-black/40").style(style)
 
                     with ui.row().classes("items-center"):
                         attr_content = getattr(country, attr)
                         text = str(attr_content)
 
                         if attr == "population":
-                            text = format(getattr(country, attr), ",")
+                            text = format(attr_content, ",")
+                        elif attr == "size":
+                            text = format(attr_content, ",")
                         elif attr == "currencies":
                             text = list_to_str(attr_content)
                         elif attr == "languages":

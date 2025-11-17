@@ -44,12 +44,12 @@ class Comparison(IntEnum):
     """
 
     # For comparing numeric values (population, size)
-    GREATER_THAN = 1
-    LESS_THAN = 2
+    GREATER_THAN = 2
+    LESS_THAN = 3
 
     # For comparing sets (currencies, timezones)
-    NO_OVERLAP = 3
-    PARTIAL_OVERLAP = 4
+    NO_OVERLAP = 4
+    PARTIAL_OVERLAP = 5
 
 
 class GuessFeedback:
@@ -71,10 +71,10 @@ class GuessFeedback:
 
     def __init__(
         self,
-        name: int,  # 0 or 1
+        name: bool,
         population: bool | Comparison,
         size: bool | Comparison,
-        region: int,  # 0 or 1
+        region: bool,
         currencies: bool | Comparison,
         languages: bool | Comparison,
         timezones: bool | Comparison,
