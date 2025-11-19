@@ -5,7 +5,7 @@ from nicegui import ui
 
 from game.daily import get_daily_country, handle_guess
 from phase2.country import Country
-from phase2.round import Comparison, GuessFeedback, RoundStats
+from phase2.round import GuessFeedback, RoundStats
 
 # NiceGUI elements go here
 
@@ -86,15 +86,13 @@ def content():
                 classes = "aspect-square h-24 justify-center text-center "
                 style = None
                 match value:
-                    case Comparison.GREATER_THAN:
+                    case ">":
                         classes += similar_bg
                         style = greater_than_arrow
-                    case Comparison.LESS_THAN:
+                    case "<":
                         classes += similar_bg
                         style = less_than_arrow
-                    case Comparison.NO_OVERLAP:
-                        classes += incorrect_bg
-                    case Comparison.PARTIAL_OVERLAP:
+                    case "partial":
                         classes += similar_bg
                 if isinstance(value, bool):
                     if value:

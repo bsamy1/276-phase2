@@ -2,7 +2,7 @@ import random
 from datetime import date
 
 from phase2.country import Country, get_country, get_random_country
-from phase2.round import MAX_GUESSES, Comparison, GuessFeedback, RoundStats
+from phase2.round import GuessFeedback, RoundStats
 
 
 def get_daily_country() -> Country:
@@ -30,18 +30,18 @@ def handle_guess(input: str, round_stats: RoundStats):
     # TODO: Remove placeholder feedback
     feedback = GuessFeedback(
         name=False,
-        population=Comparison.LESS_THAN,
-        size=Comparison.LESS_THAN,
-        currencies=Comparison.PARTIAL_OVERLAP,
-        languages=Comparison.NO_OVERLAP,
-        timezones=Comparison.PARTIAL_OVERLAP,
+        population=">",
+        size="<",
+        currencies="partial",
+        languages=False,
+        timezones="partial",
         region=True,
     )
 
     if feedback.name:  # correct guess
         end_game(True, round_stats)
         round_stats.end_round()
-    elif round_stats.guesses >= MAX_GUESSES:  # too many guesses
+    elif round_stats.guesses >= round_stats.max_guesses:  # too many guesses
         end_game(False, round_stats)
         round_stats.end_round()
 

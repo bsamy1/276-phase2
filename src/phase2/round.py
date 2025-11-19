@@ -3,7 +3,6 @@ This file contains classes and methods to be used for managing a game round.
 """
 
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 
 from nicegui import Event
 
@@ -38,46 +37,33 @@ class RoundStats:
         self.round_time = datetime.now(timezone.utc) - self.round_start
 
 
-class Comparison(IntEnum):
-    """
-    Enum used for comparisons when values don't match exactly
-    """
-
-    # For comparing numeric values (population, size)
-    GREATER_THAN = 2
-    LESS_THAN = 3
-
-    # For comparing sets (currencies, timezones)
-    NO_OVERLAP = 4
-    PARTIAL_OVERLAP = 5
-
-
 class GuessFeedback:
     """
     Class that contains feedback for a guess. Any thing that is an exact
-    match is set to True; otherwise, it is given a comparison enum (with
-    the exceptions of name and region, which can only be 0 (False) or 1 (True))
+    match is set to True.
+    Any numerical comparisons are either '<' or '>'
+    Set comparisons are either False (no overlap) or 'partial'
 
-    All comparisons are in the form <guess> OP <answer>.
+    All comparisons are in the form <guess> <operator> <answer>.
     """
 
     name: int
-    population: bool | Comparison
-    size: bool | Comparison
+    population: bool | str
+    size: bool | str
     region: int
-    currencies: bool | Comparison
-    languages: bool | Comparison
-    timezones: bool | Comparison
+    currencies: bool | str
+    languages: bool | str
+    timezones: bool | str
 
     def __init__(
         self,
         name: bool,
-        population: bool | Comparison,
-        size: bool | Comparison,
+        population: bool | str,
+        size: bool | str,
         region: bool,
-        currencies: bool | Comparison,
-        languages: bool | Comparison,
-        timezones: bool | Comparison,
+        currencies: bool | str,
+        languages: bool | str,
+        timezones: bool | str,
     ):
         self.name = name
         self.population = population
