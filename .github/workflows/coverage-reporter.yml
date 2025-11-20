@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   coverage-report:
+    name: Test Coverage
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
