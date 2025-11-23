@@ -37,7 +37,7 @@ class RoundStats:
     """
 
     guesses: int
-    guessed_names: [str]
+    guessed_names: list[str]
     max_guesses: int
     mode: str
     start_time: datetime
