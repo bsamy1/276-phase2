@@ -24,15 +24,13 @@ class Country:
 
 
 def map_to_country_obj(country_info_obj: CountryInfo) -> Country:
-    info = country_info_obj.info()
-
-    name = info.get("name", "")
-    population = info.get("population", 0)
-    size = info.get("area", 0.0)
-    region = info.get("region", "")
-    languages = info.get("languages", [])
-    currencies = info.get("currencies", [])
-    timezones = info.get("timezones", [])
+    name = country_info_obj.name()
+    population = country_info_obj.population()
+    size = country_info_obj.area()
+    region = country_info_obj.region()
+    languages = country_info_obj.languages()
+    currencies = country_info_obj.currencies()
+    timezones = country_info_obj.timezones()
 
     return Country(name, population, size, region, languages, currencies, timezones)
 

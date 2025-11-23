@@ -13,12 +13,13 @@ permissions:
 
 jobs:
   coverage-report:
+    name: Test Coverage
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: cov.xml
+          name: pytest-results
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test Coverage
@@ -26,5 +27,5 @@ jobs:
         with:
             coverageFile: cov.xml
             token: ${{ secrets.GITHUB_TOKEN }}
-            thresholdAll: 0.5
-            thresholdModified: 0.6
+            thresholdAll: 0.8
+            thresholdModified: 0.95

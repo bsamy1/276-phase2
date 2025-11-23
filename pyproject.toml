@@ -51,3 +51,4 @@ testpaths = "tests"
 asyncio_mode = "auto"
 main_file = "src/main.py"
 addopts = "-p nicegui.testing.user_plugin"
+markers = ["noautofixt"]
