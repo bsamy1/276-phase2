@@ -67,4 +67,4 @@ def index_page():
     game_ui.content()
 
 
-ui.run(title="CMPT276 Project", dark=None, port=os.getenv("WEB_PORT", 8080))
+ui.run(title="CMPT276 Project", dark=None, port=int(os.getenv("WEB_PORT", 8080)))
