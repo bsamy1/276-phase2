@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -12,6 +14,7 @@ def engine():
     yield engine
     engine.dispose()
 
+
 @pytest.fixture(scope="function")
 def session(engine):
     conn = engine.connect()
@@ -20,6 +23,7 @@ def session(engine):
     yield db
     db.rollback()
     conn.close()
+
 
 @pytest.fixture(scope="function")
 def repo(session):
@@ -33,7 +37,7 @@ class FakeStats:
         daily_streak: int,
         longest_daily_streak: int,
         average_daily_guesses: int,
-        average_daily_time: float,
+        average_daily_time: timedelta,
         longest_survival_streak: int,
         score: int,
     ):
@@ -52,7 +56,7 @@ class FakeStatsRepo:
 
     def get_leaderboard_stats_for_user(self, user_id: int):
         return self._stats_by_user.get(user_id)
-    
+
 
 def create_entry(
     session: Session,
@@ -61,9 +65,9 @@ def create_entry(
     daily_streak: int = 0,
     longest_daily_streak: int = 0,
     average_daily_guesses: int = 0,
-    average_daily_time: float = 0.0,
+    average_daily_time: timedelta = timedelta(),
     longest_survival_streak: int = 0,
-    ) -> LeaderboardEntry:
+) -> LeaderboardEntry:
     """Helper to create a LeaderboardEntry directly in the DB."""
     entry = LeaderboardEntry(
         user_id=user_id,
@@ -89,7 +93,7 @@ async def test_sync_user_entry_creates_new_entry(repo, session):
         daily_streak=3,
         longest_daily_streak=5,
         average_daily_guesses=4,
-        average_daily_time=12.5,
+        average_daily_time=timedelta(seconds=12.5),
         longest_survival_streak=7,
         score=42,
     )
@@ -103,10 +107,11 @@ async def test_sync_user_entry_creates_new_entry(repo, session):
     assert entry.daily_streak == 3
     assert entry.longest_daily_streak == 5
     assert entry.average_daily_guesses == 4
-    assert entry.average_daily_time == 12.5
+    assert entry.average_daily_time == timedelta(seconds=12.5)
     assert entry.longest_survival_streak == 7
     # use high_score or score depending on what your model actually has:
     assert entry.score == 42  # or entry.score == 42
+
 
 @pytest.mark.asyncio
 async def test_get_entry_returns_entry_when_exists(repo, session):
@@ -136,7 +141,6 @@ async def test_get_entry_returns_none_when_missing(repo):
     assert entry is None
 
 
-
 @pytest.mark.asyncio
 async def test_get_top_10_entries_empty(repo):
     """
@@ -144,6 +148,7 @@ async def test_get_top_10_entries_empty(repo):
     """
     top10 = await repo.get_top_10_entries()
     assert top10 == []
+
 
 @pytest.mark.asyncio
 async def test_get_top_10_entries_returns_top_10(repo, session):
@@ -162,6 +167,7 @@ async def test_get_top_10_entries_returns_top_10(repo, session):
     # Scores should be from 14 down to 5
     scores = [entry.score for entry in top10]
     assert scores == list(range(14, 4, -1))
+
 
 @pytest.mark.asyncio
 async def test_get_250_entries_from_position_50(repo, session):
@@ -189,6 +195,7 @@ async def test_get_250_entries_from_position_50(repo, session):
     expected_scores = list(range(350, 100, -1))
 
     assert scores == expected_scores
+
 
 @pytest.mark.asyncio
 async def get_friend_entries(repo):
