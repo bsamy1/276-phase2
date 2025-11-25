@@ -69,4 +69,9 @@ def index_page():
 
 
 app.include_router(admin.router)
-ui.run(title="CMPT276 Project", dark=None, port=int(os.getenv("PORT", 8080)))
+ui.run(
+    title="CMPT276 Project",
+    dark=None,
+    port=int(os.getenv("PORT", 8080)),
+    storage_secret=(os.getenv("STORAGE_SECRET", "placeholder")),
+)
