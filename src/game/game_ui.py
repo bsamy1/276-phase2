@@ -236,7 +236,7 @@ def popup_leaderboard(mode: str):
                 "sortable": True,
             }
         )
-    table = ui.table(columns=columns, rows=fetch_leaderboard(), row_key="entry_id", pagination=2)
+    table = ui.table(columns=columns, rows=fetch_leaderboard(), row_key="entry_id", pagination=10)
 
     # TODO: Properly retrieve user id for logged in user
     user_id = "Dave"
@@ -249,8 +249,8 @@ def popup_leaderboard(mode: str):
         return
 
     # Jump to page containing the given user
-    target_page = (row_index // 2) + 1
-    table.pagination = {"rowsPerPage": 2, "page": target_page}
+    target_page = (row_index // 10) + 1
+    table.pagination = {"rowsPerPage": 10, "page": target_page}
 
     # Scroll to user's entry
     table.run_method("scrollTo", row_index)
