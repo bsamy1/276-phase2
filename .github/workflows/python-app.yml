@@ -30,7 +30,14 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
+      
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          submodules: recursive
+      - name: Checkout submodule
+        run: |
+          git submodule update --init --recursive
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
