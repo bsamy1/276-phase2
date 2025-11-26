@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from nicegui import ui
 
 from game.daily import get_daily_country, handle_guess
+from game.leaderboard_ui import fetch_leaderboard
 from phase2.country import Country
 from phase2.round import GuessFeedback, RoundStats
 
@@ -137,14 +138,14 @@ def content():
         else:
             text = "Too bad!"
 
-        with ui.dialog() as dialog, ui.card():
+        with ui.dialog() as dialog, ui.card().classes("w-3/4"):
             ui.label(text)
             ui.label("The correct country was " + get_daily_country().name.title())
             ui.label(f"Time: {str(round_stats.round_length).split('.')[0]}")
             ui.label(f"Guesses: {round_stats.guesses}")
             ui.button("Close", on_click=dialog.close)
 
-            # TODO: Display leaderboard/player stats here?
+            popup_leaderboard("daily")
 
             dialog.open()
 
@@ -178,9 +179,25 @@ def content():
                     on_change=clear_input_error,
                 )
                 .without_auto_validation()
-                .on("keydown.enter", lambda: try_guess())
+                .on("keydown.enter", try_guess)
             )
-            submit = ui.button("Submit", on_click=lambda: try_guess())
+            submit = ui.button("Submit", on_click=try_guess)
+            ui.button(
+                "Test win",
+                on_click=lambda: (
+                    round_stats.start_round(),
+                    round_stats.end_round(),
+                    round_stats.game_ended.emit(True),
+                ),
+            )
+            ui.button(
+                "Test loss",
+                on_click=lambda: (
+                    round_stats.start_round(),
+                    round_stats.end_round(),
+                    round_stats.game_ended.emit(False),
+                ),
+            )
 
 
 # button to display leaderboards
@@ -191,6 +208,69 @@ leaderboard
     - allow switch to friends-only or global leaderboard
     - allow jumping to top-ranked players
 """
+
+
+def popup_leaderboard(mode: str):
+    columns = [
+        {"name": "user_id", "label": "Player", "field": "user_id", "sortable": True},
+        {
+            "name": "daily_streak",
+            "label": "Daily Streak",
+            "field": "daily_streak",
+            "sortable": True,
+        },
+    ]
+
+    if mode == "daily":
+        columns = columns + [
+            {
+                "name": "longest_daily_streak",
+                "label": "Longest Daily Streak",
+                "field": "longest_daily_streak",
+                "sortable": True,
+            },
+            {
+                "name": "average_daily_guesses",
+                "label": "Avg Guesses",
+                "field": "average_daily_guesses",
+                "sortable": True,
+            },
+            {
+                "name": "average_daily_time",
+                "label": "Avg Time",
+                "field": "average_daily_time",
+                "sortable": True,
+            },
+        ]
+
+    elif mode == "survival":
+        columns.append(
+            {
+                "name": "longest_survival_streak",
+                "label": "Survival Streak",
+                "field": "longest_survival_streak",
+                "sortable": True,
+            }
+        )
+    table = ui.table(columns=columns, rows=fetch_leaderboard(), row_key="entry_id", pagination=2)
+
+    # TODO: Properly retrieve user id for logged in user
+    user_id = "Dave"
+    row_index = None
+    # Iterate through table until finding the correct entry
+    for i, row in enumerate(table.rows):
+        if row["user_id"] == user_id:
+            row_index = i
+    if not row_index:
+        return
+
+    # Jump to page containing the given user
+    target_page = (row_index // 2) + 1
+    table.pagination = {"rowsPerPage": 2, "page": target_page}
+
+    # Scroll to user's entry
+    table.run_method("scrollTo", row_index)
+
 
 # button to open account management menu
 """
