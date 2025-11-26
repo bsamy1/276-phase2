@@ -1,7 +1,10 @@
+import logging
 import random
 from typing import List
 
 from countryinfo import CountryInfo
+
+logger = logging.getLogger("phase2.country")
 
 
 class Country:
@@ -43,6 +46,10 @@ def get_random_country() -> Country:
     random_country_name = random.choice(list(all_countries.keys()))
     obj = CountryInfo(random_country_name)
 
+    if not verify_country(obj):
+        logger.warning("Daily country missing required info. Regenerating...")
+        return get_random_country()  # run again if the random country is missing info
+
     return map_to_country_obj(obj)
 
 
@@ -56,3 +63,11 @@ def get_country(name: str) -> Country:
         return map_to_country_obj(country)
     except KeyError:
         return None
+
+
+def verify_country(country) -> bool:
+    """
+    Verifies that a CountryInfo object from the api has all the required data for the game
+    """
+    props = ["name", "population", "area", "region", "languages", "currencies", "timezones"]
+    return all(country.info().get(key) is not None for key in props)
