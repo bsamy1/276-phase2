@@ -5,6 +5,7 @@ from nicegui import ui
 
 from game.daily import get_daily_country, handle_guess
 from game.leaderboard_ui import fetch_leaderboard
+from phase2.account_ui import SESSION
 from phase2.country import Country
 from phase2.round import GuessFeedback, RoundStats
 
@@ -183,7 +184,15 @@ def content():
             )
             submit = ui.button("Submit", on_click=try_guess)
 
+        def go_to_account():
+            user = SESSION.get("user")
+            if user:
+                ui.navigate.to("/account")
+            else:
+                ui.navigate.to("/login?redirect_to=/account")
 
+        # button to open account management menu
+        ui.button("Account", on_click=go_to_account)
 # button to display leaderboards
 """
 leaderboard
