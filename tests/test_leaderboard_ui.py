@@ -180,6 +180,7 @@ def test_fetch_leaderboard_with_fallback_data(
 def test_fetch_friends_leaderboard(monkeypatch: pytest.MonkeyPatch) -> None:
     from game import leaderboard_ui
     from game.leaderboard_ui import fetch_friends_leaderboard
+    from shared import database
 
     fake_user_id = 42
     fake_rows = [
@@ -189,7 +190,7 @@ def test_fetch_friends_leaderboard(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Mock DB connection
     mock_db = MagicMock()
-    monkeypatch.setattr(leaderboard_ui, "get_db", lambda: mock_db)
+    monkeypatch.setattr(database, "get_db", lambda: mock_db)
 
     # Mock Leaderboard instance
     mock_lb_instance = MagicMock()
