@@ -1,9 +1,9 @@
 import logging
 
+from phase2.country import Country, get_country, get_random_country
 from phase2.daily import compare_countries
-
-from phase2.country import Country, get_country, get_random_country  # noqa: F401
 from phase2.round import GuessFeedback, RoundStats
+from phase2.statistics import get_statistics_repository
 
 logger = logging.getLogger("phase2.survival")
 
@@ -62,7 +62,7 @@ def survival_mode():
     return survival_stats, round_stats
 
 
-def handle_survival_guess(input: str, round_stats: RoundStats, survival_stats: SurvivalStats):
+async def handle_survival_guess(input: str, round_stats: RoundStats, survival_stats: SurvivalStats):
     """
     Handle a guess in survival mode. Similar to daily mode but with lives system
     and continuous country generation.
@@ -95,14 +95,14 @@ def handle_survival_guess(input: str, round_stats: RoundStats, survival_stats: S
     round_stats.guesses += 1
     
     if feedback.name:  # Correct guess
-        handle_correct_guess(round_stats, survival_stats)
+        await handle_correct_guess(round_stats, survival_stats)
     elif round_stats.guesses >= round_stats.max_guesses:  # Out of guesses for this country
-        handle_incorrect_guess(round_stats, survival_stats)
+        await handle_incorrect_guess(round_stats, survival_stats)
     
     round_stats.guess_graded.emit(country, feedback)
 
 
-def handle_correct_guess(round_stats: RoundStats, survival_stats: SurvivalStats):
+async def handle_correct_guess(round_stats: RoundStats, survival_stats: SurvivalStats):
     """
     Handle a correct guess in survival mode:
     - Increment streak
@@ -127,7 +127,7 @@ def handle_correct_guess(round_stats: RoundStats, survival_stats: SurvivalStats)
     logger.info(f"Correct guess! Streak: {survival_stats.streak}, Lives: {survival_stats.lives}")
 
 
-def handle_incorrect_guess(round_stats: RoundStats, survival_stats: SurvivalStats):
+async def handle_incorrect_guess(round_stats: RoundStats, survival_stats: SurvivalStats):
     """
     Handle running out of guesses in survival mode:
     - Lose a life
@@ -139,7 +139,7 @@ def handle_incorrect_guess(round_stats: RoundStats, survival_stats: SurvivalStat
     logger.info(f"Out of guesses. Lives remaining: {survival_stats.lives}")
     
     if survival_stats.is_game_over():
-        end_survival_game(round_stats, survival_stats)
+        await end_survival_game(round_stats, survival_stats)
     else:
         # Generate new country and continue
         survival_stats.current_country = get_random_country()
@@ -147,29 +147,26 @@ def handle_incorrect_guess(round_stats: RoundStats, survival_stats: SurvivalStat
         round_stats.guessed_names = []
 
 
-def end_survival_game(round_stats: RoundStats, survival_stats: SurvivalStats):
+async def end_survival_game(round_stats: RoundStats, survival_stats: SurvivalStats):
     """
     End the survival game and process final statistics
     """
+    stats_repo = get_statistics_repository()
+    
     round_stats.end_round()
+    round_stats.won = False  # Survival mode always ends in "loss"
     
     logger.info(f"Survival game ended. Final streak: {survival_stats.streak}")
+    logger.info("Round stats:")
+    logger.info(vars(round_stats))
     
-    # TODO (milestone 2): Get the user id of the currently playing user
+    # TODO (milestone 2): Get the user id of the currently playing user, if there is one
+    round_stats.user_id = 0
     
-    # TODO (milestone 2): Add round to the rounds database with survival streak
-    """
-    round_statistics_repo = RoundStatisticsRepository()
-    round_statistics_repo.add_round(
-        time_to_complete=round_stats.round_length.total_seconds(),
-        won=False,  # Survival mode ends in loss when lives run out
-        guesses=survival_stats.total_countries_guessed,
-        mode=round_stats.mode,
-        survival_streak=survival_stats.streak
-    )
-    """
+    # Add round to the rounds database with survival streak
+    await stats_repo.add_round(round_stats, survival_streak=survival_stats.streak)
     
     # Emit game ended event with final stats
-    round_stats.game_ended.emit(False)  # False because survival always ends in "loss"
+    round_stats.game_ended.emit(False)
     
     survival_stats.reset_streak()
