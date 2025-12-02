@@ -161,5 +161,6 @@ class RoundStatisticsRepository:
 
 
 def get_statistics_repository() -> RoundStatisticsRepository:
-    db = get_db()
+    db_gen = get_db()          
+    db: Session = next(db_gen) 
     return RoundStatisticsRepository(db)
