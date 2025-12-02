@@ -6,7 +6,7 @@ authors = [
   { name="Sam McGarry", email="sma256@sfu.ca" },
   { name="Jun Yi Fan", email="jyf5@sfu.ca" },
   { name="Ben Samy", email="bsa125@sfu.ca" },
-  { name="Ravneet Kaur", email="" },
+  { name="Ravneet Kaur", email="rka180@sfu.ca" },
 ]
 readme = "README.md"
 requires-python = ">=3.13"
