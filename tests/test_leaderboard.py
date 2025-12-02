@@ -1,8 +1,13 @@
+from datetime import date, timedelta
+
 import pytest
+from shared.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from phase2.leaderboard import Base, Leaderboard, LeaderboardEntry
+from phase2.friends import Friendship
+from phase2.leaderboard import Leaderboard, LeaderboardEntry
+from phase2.statistics import RoundStatistics
 
 
 @pytest.fixture(scope="function")
@@ -12,6 +17,7 @@ def engine():
     yield engine
     engine.dispose()
 
+
 @pytest.fixture(scope="function")
 def session(engine):
     conn = engine.connect()
@@ -20,6 +26,7 @@ def session(engine):
     yield db
     db.rollback()
     conn.close()
+
 
 @pytest.fixture(scope="function")
 def repo(session):
@@ -33,7 +40,7 @@ class FakeStats:
         daily_streak: int,
         longest_daily_streak: int,
         average_daily_guesses: int,
-        average_daily_time: float,
+        average_daily_time: timedelta,
         longest_survival_streak: int,
         score: int,
     ):
@@ -52,7 +59,7 @@ class FakeStatsRepo:
 
     def get_leaderboard_stats_for_user(self, user_id: int):
         return self._stats_by_user.get(user_id)
-    
+
 
 def create_entry(
     session: Session,
@@ -61,9 +68,9 @@ def create_entry(
     daily_streak: int = 0,
     longest_daily_streak: int = 0,
     average_daily_guesses: int = 0,
-    average_daily_time: float = 0.0,
+    average_daily_time: timedelta = timedelta(),
     longest_survival_streak: int = 0,
-    ) -> LeaderboardEntry:
+) -> LeaderboardEntry:
     """Helper to create a LeaderboardEntry directly in the DB."""
     entry = LeaderboardEntry(
         user_id=user_id,
@@ -80,6 +87,22 @@ def create_entry(
     return entry
 
 
+
+def add_round(db, user_id, won=True, guesses=3, mode="daily", streak=1):
+    """Insert a RoundStatistics row."""
+    row = RoundStatistics(
+        user_id=user_id,
+        round_length=timedelta(seconds=60),
+        won=won,
+        guesses=guesses,
+        mode=mode,
+        daily_date=date.today(),
+        survival_streak=streak,
+    )
+    db.add(row)
+    db.commit()
+
+
 @pytest.mark.asyncio
 async def test_sync_user_entry_creates_new_entry(repo, session):
     user_id = 1
@@ -89,7 +112,7 @@ async def test_sync_user_entry_creates_new_entry(repo, session):
         daily_streak=3,
         longest_daily_streak=5,
         average_daily_guesses=4,
-        average_daily_time=12.5,
+        average_daily_time=timedelta(seconds=12.5),
         longest_survival_streak=7,
         score=42,
     )
@@ -103,10 +126,11 @@ async def test_sync_user_entry_creates_new_entry(repo, session):
     assert entry.daily_streak == 3
     assert entry.longest_daily_streak == 5
     assert entry.average_daily_guesses == 4
-    assert entry.average_daily_time == 12.5
+    assert entry.average_daily_time == timedelta(seconds=12.5)
     assert entry.longest_survival_streak == 7
     # use high_score or score depending on what your model actually has:
     assert entry.score == 42  # or entry.score == 42
+
 
 @pytest.mark.asyncio
 async def test_get_entry_returns_entry_when_exists(repo, session):
@@ -136,7 +160,6 @@ async def test_get_entry_returns_none_when_missing(repo):
     assert entry is None
 
 
-
 @pytest.mark.asyncio
 async def test_get_top_10_entries_empty(repo):
     """
@@ -144,6 +167,7 @@ async def test_get_top_10_entries_empty(repo):
     """
     top10 = await repo.get_top_10_entries()
     assert top10 == []
+
 
 @pytest.mark.asyncio
 async def test_get_top_10_entries_returns_top_10(repo, session):
@@ -162,6 +186,7 @@ async def test_get_top_10_entries_returns_top_10(repo, session):
     # Scores should be from 14 down to 5
     scores = [entry.score for entry in top10]
     assert scores == list(range(14, 4, -1))
+
 
 @pytest.mark.asyncio
 async def test_get_250_entries_from_position_50(repo, session):
@@ -190,6 +215,36 @@ async def test_get_250_entries_from_position_50(repo, session):
 
     assert scores == expected_scores
 
+
 @pytest.mark.asyncio
-async def get_friend_entries(repo):
-    pass
+async def test_get_friends_entries_returns_sorted_results(session):
+    db = session
+    
+    # Setup: user 1 is friends with 2 and 3
+    db.add_all([
+        Friendship(user_id=1, friend_id=2),
+        Friendship(user_id=1, friend_id=3),
+    ])
+    db.commit()
+
+    leaderboard = Leaderboard(db)
+
+    # Insert leaderboard entries directly with known scores
+    # user 2 → highest score
+    # user 1 → medium
+    # user 3 → lowest
+    db.add_all([
+        LeaderboardEntry(user_id=1, score=50),
+        LeaderboardEntry(user_id=2, score=100),
+        LeaderboardEntry(user_id=3, score=10),
+    ])
+    db.commit()
+
+    # Act
+    entries = leaderboard.get_friends_entries(1)
+
+    # Assert
+    assert len(entries) == 3
+
+    # Sorted by score DESCENDING
+    assert [e.user_id for e in entries] == [2, 1, 3]

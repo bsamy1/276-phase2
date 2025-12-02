@@ -4,6 +4,7 @@ from datetime import date
 
 from phase2.country import Country, get_country, get_random_country
 from phase2.round import GuessFeedback, RoundStats
+from phase2.statistics import get_statistics_repository
 
 logger = logging.getLogger("phase2.daily")
 
@@ -17,7 +18,7 @@ def get_daily_country() -> Country:
     return get_random_country()
 
 
-def handle_guess(input: str, round_stats: RoundStats):
+async def handle_guess(input: str, round_stats: RoundStats):
     """
     Assumes input str is a valid country string
 
@@ -42,11 +43,9 @@ def handle_guess(input: str, round_stats: RoundStats):
     round_stats.guesses += 1
 
     if feedback.name:  # correct guess
-        end_game(True, round_stats)
-        round_stats.end_round()
+        await end_game(True, round_stats)
     elif round_stats.guesses >= round_stats.max_guesses:  # too many guesses
-        end_game(False, round_stats)
-        round_stats.end_round()
+        await end_game(False, round_stats)
 
     round_stats.guess_graded.emit(country, feedback)
 
@@ -132,27 +131,25 @@ def compare_countries(guess: Country, answer: Country) -> GuessFeedback:
     return feedback
 
 
-def end_game(won: bool, round_stats: RoundStats):
+async def end_game(won: bool, round_stats: RoundStats):
     """
     End the game in either a win or a loss, and pass this game's statistics
     on to be processed in statistics.py, and show a breakdown of this game's
     stats to the user
     """
+    stats_repo = get_statistics_repository()
 
     round_stats.end_round()
+    round_stats.won = won
+    logger.info("Round stats:")
+    logger.info(vars(round_stats))
 
     # TODO (milestone 2): Get the user id of the currently playing user, if there is one
-
+    round_stats.user_id = 0
     # TODO (milestone 3): Add in the number of survival rounds completed
 
-    # TODO (milestone 2): Add round to the rounds database properly
-    """round_statistics_repo = RoundStatisticsRepository()
-    round_statistics_repo.add_round(
-        time_to_complete=round_stats.round_time,
-        won=won,
-        guesses=round_stats.guesses,
-        mode=round_stats.mode,
-    )"""
+    # Add round to the round stats database (currently with placeholder user id)
+    await stats_repo.add_round(round_stats)
 
     # Show game stats in UI
     round_stats.game_ended.emit(won)

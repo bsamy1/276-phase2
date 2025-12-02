@@ -1,7 +1,13 @@
+from datetime import timedelta
+
 from fastapi import Depends
 from pydantic import BaseModel
-from sqlalchemy import Float, Integer, Sequence, select
+from shared.database import Base, get_db
+from sqlalchemy import Integer, Interval, Sequence, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
+from phase2.friends import Friendship
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from user_service.src.shared.database import Base, get_db
@@ -14,6 +20,8 @@ class LeaderboardEntry(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, nullable=False
     )  # ForeignKey(user_id). once users table is linked
+        Integer, nullable=False
+    )  # ForeignKey(user_id). once users table is linked
 
     daily_streak: Mapped[int] = mapped_column(
         Integer, default=0
@@ -22,8 +30,8 @@ class LeaderboardEntry(Base):
         Integer, default=0
     )  # highest daily streak ever recorded
     average_daily_guesses: Mapped[int] = mapped_column(Integer, default=0)
-    average_daily_time: Mapped[float] = mapped_column(
-        Float, default=0
+    average_daily_time: Mapped[timedelta] = mapped_column(
+        Interval,  default=timedelta(seconds=0)
     )  # average time to complete the daily in seconds
     longest_survival_streak: Mapped[int] = mapped_column(Integer, default=0)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -32,6 +40,7 @@ class LeaderboardEntry(Base):
 class LeaderboardRepository:
     def __init__(self, session: Session):
         self.session = session
+        self.stats_repo = stats_repo
 
     async def sync_user_entry(self, user_id: int) -> LeaderboardEntry | None:
         """
@@ -134,15 +143,30 @@ class LeaderboardRepository:
 
         return self.session.execute(stmt).scalars().all()
 
-    async def get_friend_entries(self, user_id: int) -> list[LeaderboardEntry]:
+    def get_friends_entries(self, user_id: int) -> list[LeaderboardEntry]:
         """
         Get all leaderboard entries for the given user's friends only
         (including the given user)
         """
 
-        #  TODO this one's a bit harder so still working on the logic for it
+        # Get friend IDs 
+        stmt = select(Friendship.friend_id).where(Friendship.user_id == user_id)
+        friend_ids = self.session.execute(stmt).scalars().all()
 
-        pass
+        # Always include the user's own ID
+        friend_ids.append(user_id)
+
+        # Remove duplicates 
+        friend_ids = list(set(friend_ids))
+
+        # Query leaderboard entries for the 
+        stmt = select(LeaderboardEntry).where(LeaderboardEntry.user_id.in_(friend_ids))
+        entries = self.session.execute(stmt).scalars().all()
+
+        #  Sort by score descending
+        entries.sort(key=lambda e: e.score, reverse=True)
+
+        return entries
 
     async def get_score(self, user_id: int) -> int:
         """
@@ -172,5 +196,10 @@ class LeaderboardEntrySchema(BaseModel):
     daily_streak: int
     longest_daily_streak: int
     average_daily_guesses: int
-    average_daily_time: float
+    average_daily_time: timedelta
     longest_survival_streak: int
+
+
+def get_leaderboard_repository() -> Leaderboard:
+    db = get_db()
+    return Leaderboard(session=db)

@@ -40,17 +40,19 @@ class RoundStats:
     guessed_names: list[str]
     max_guesses: int
     mode: str
+    user_id: int
     start_time: datetime
     guess_graded: Event[Country, GuessFeedback]
     game_ended: Event[bool]
     guess_error: Event
     round_length: timedelta
 
-    def __init__(self, mode: str):
+    def __init__(self, mode: str, user_id: int = None):
         self.guesses = 0
         self.guessed_names = []
         self.max_guesses = MAX_GUESSES
         self.mode = mode
+        self.user_id = user_id
 
         self.start_time = None
 

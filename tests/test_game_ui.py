@@ -1,13 +1,45 @@
+import asyncio
 from unittest.mock import patch
 
 import pytest
 from nicegui import ui
 from nicegui.testing import User
+from shared.database import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from game.game_ui import concat_data, list_to_str
 from phase2.country import get_country
+from phase2.statistics import RoundStatisticsRepository
 
 pytest_plugins = ["nicegui.testing.user_plugin"]
+
+
+@pytest.fixture(scope="function")
+def engine():
+    engine = create_engine("sqlite:///:memory:?check_same_thread=False")
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def session(engine):
+    conn = engine.connect()
+    conn.begin()
+    db = Session(bind=conn)
+    yield db
+    db.rollback()
+    conn.close()
+
+
+@pytest.fixture
+def mocked_stats_repo(session):
+    patcher = patch("game.daily.get_statistics_repository")
+    mock = patcher.start()
+    mock.return_value = RoundStatisticsRepository(session)
+    yield mock
+    patcher.stop()
 
 
 @pytest.fixture(autouse=True)
@@ -105,22 +137,27 @@ async def test_repeat_guess(user: User) -> None:
     guess = user.find("Guess")
     guess.type("Canada").trigger("keydown.enter")
 
+    await asyncio.sleep(0.1)
+
     guess.type("Canada").trigger("keydown.enter")
     await user.should_see("Already guessed!")
 
 
-async def test_win_game(user: User) -> None:
+async def test_win_game(user: User, mocked_stats_repo) -> None:
     await user.open("/")
 
     guess = user.find("Guess")
     guess.type("United States").trigger("keydown.enter")
 
+    await asyncio.sleep(0.1)
+
     await user.should_see(ui.dialog)
     await user.should_see("Congratulations!")
     await user.should_see("The correct country was United States")
+    await user.should_see(ui.table)
 
 
-async def test_lose_game(user: User) -> None:
+async def test_lose_game(user: User, mocked_stats_repo) -> None:
     await user.open("/")
 
     await user.should_see(ui.grid)
@@ -129,6 +166,9 @@ async def test_lose_game(user: User) -> None:
     guess = user.find("Guess")
     for i in range(6):
         guess.type(guesses[i]).trigger("keydown.enter")
+        await asyncio.sleep(0.1)
 
     await user.should_see(ui.dialog)
     await user.should_see("Too bad!")
+    await user.should_see("The correct country was United States")
+    await user.should_see(ui.table)

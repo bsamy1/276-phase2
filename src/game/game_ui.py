@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from nicegui import ui
 
 from game.daily import get_daily_country, handle_guess
+from game.leaderboard_ui import fetch_leaderboard
+from phase2.account_ui import SESSION
 from phase2.country import Country
 from phase2.round import GuessFeedback, RoundStats
 
@@ -49,18 +51,20 @@ def content():
         """
         if guess.lower() not in options:
             return "Not a valid country!"
-        if guess.lower() in round_stats.guessed_names:
+        elif guess.lower() in round_stats.guessed_names:
             return "Already guessed!"
-        return None
+        else:
+            return None
 
-    def try_guess():
+    async def try_guess():
         """
         Validates an inputted guess and passes it into the guess handler
         if it's valid.
         """
         if guess_input.validate():
-            handle_guess(guess_input.value, round_stats)
+            val = guess_input.value
             guess_input.value = ""
+            await handle_guess(val, round_stats)
 
     @round_stats.guess_graded.subscribe
     def display_feedback(country: Country, feedback: GuessFeedback):
@@ -135,14 +139,14 @@ def content():
         else:
             text = "Too bad!"
 
-        with ui.dialog() as dialog, ui.card():
+        with ui.dialog() as dialog, ui.card(align_items="center").style("max-width: none"):
             ui.label(text)
             ui.label("The correct country was " + get_daily_country().name.title())
             ui.label(f"Time: {str(round_stats.round_length).split('.')[0]}")
             ui.label(f"Guesses: {round_stats.guesses}")
-            ui.button("Close", on_click=dialog.close)
 
-            # TODO: Display leaderboard/player stats here?
+            popup_leaderboard("daily")
+            ui.button("Close", on_click=dialog.close)
 
             dialog.open()
 
@@ -163,19 +167,32 @@ def content():
         guesses = ui.grid(columns=7).classes("w-full")
 
         with ui.card(align_items="center"):
+
+            def clear_input_error():
+                guess_input.error = None
+
             guess_input = (
                 ui.input(
                     label="Guess",
                     placeholder="Enter a country",
                     autocomplete=options,
                     validation=is_guess_valid,
+                    on_change=clear_input_error,
                 )
                 .without_auto_validation()
                 .on("keydown.enter", try_guess)
             )
             submit = ui.button("Submit", on_click=try_guess)
 
+        def go_to_account():
+            user = SESSION.get("user")
+            if user:
+                ui.navigate.to("/account")
+            else:
+                ui.navigate.to("/login?redirect_to=/account")
 
+        # button to open account management menu
+        ui.button("Account", on_click=go_to_account)
 # button to display leaderboards
 """
 leaderboard
@@ -184,6 +201,69 @@ leaderboard
     - allow switch to friends-only or global leaderboard
     - allow jumping to top-ranked players
 """
+
+
+def popup_leaderboard(mode: str):
+    columns = [
+        {"name": "user_id", "label": "Player", "field": "user_id", "sortable": True},
+        {
+            "name": "daily_streak",
+            "label": "Daily Streak",
+            "field": "daily_streak",
+            "sortable": True,
+        },
+    ]
+
+    if mode == "daily":
+        columns = columns + [
+            {
+                "name": "longest_daily_streak",
+                "label": "Longest Daily Streak",
+                "field": "longest_daily_streak",
+                "sortable": True,
+            },
+            {
+                "name": "average_daily_guesses",
+                "label": "Avg Guesses",
+                "field": "average_daily_guesses",
+                "sortable": True,
+            },
+            {
+                "name": "average_daily_time",
+                "label": "Avg Time",
+                "field": "average_daily_time",
+                "sortable": True,
+            },
+        ]
+
+    elif mode == "survival":
+        columns.append(
+            {
+                "name": "longest_survival_streak",
+                "label": "Survival Streak",
+                "field": "longest_survival_streak",
+                "sortable": True,
+            }
+        )
+    table = ui.table(columns=columns, rows=fetch_leaderboard(), row_key="entry_id", pagination=10)
+
+    # TODO: Properly retrieve user id for logged in user
+    user_id = "Dave"
+    row_index = None
+    # Iterate through table until finding the correct entry
+    for i, row in enumerate(table.rows):
+        if row["user_id"] == user_id:
+            row_index = i
+    if not row_index:
+        return
+
+    # Jump to page containing the given user
+    target_page = (row_index // 10) + 1
+    table.pagination = {"rowsPerPage": 10, "page": target_page}
+
+    # Scroll to user's entry
+    table.run_method("scrollTo", row_index)
+
 
 # button to open account management menu
 """
