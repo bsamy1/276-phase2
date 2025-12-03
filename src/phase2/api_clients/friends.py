@@ -6,10 +6,8 @@ class FriendsAPI:
         self.base = base_url                      # store backend URL
 
 
-    # -----------------------
-    # SEND FRIEND REQUEST
-    # -----------------------
-    async def send_request(self, sender_id: int, receiver_id: int, jwt: str):
+    # send friend request
+    async def create_request(self, sender_id: int, receiver_id: int, jwt: str):
 
         body = {                                  # backend requires this structure
             "requestor": sender_id,               # who is sending
@@ -25,23 +23,19 @@ class FriendsAPI:
                 f"{self.base}/v2/users/{receiver_id}/friend-requests/",
                 json=body
             )
-            return r.json()                       # backend returns request info
+            return r.json()                       
 
 
-    # -----------------------
-    # LIST INCOMING REQUESTS
-    # -----------------------
+    # list incoming friend requests
     async def incoming(self, user_id: int):
         async with httpx.AsyncClient() as client:
             r = await client.get(
                 f"{self.base}/v2/users/{user_id}/friend-requests/?q=incoming"
             )
-            return r.json()["requests"]           # list of requestor IDs
+            return r.json()["requests"]        
 
 
-    # -----------------------
-    # ACCEPT FRIEND REQUEST
-    # -----------------------
+    # accept friend requests
     async def accept(self, user_id: int, other_id: int, jwt: str):
 
         body = {                                  # required: decision + auth
@@ -59,10 +53,7 @@ class FriendsAPI:
             )
             return r.json()
 
-
-    # -----------------------
-    # REJECT FRIEND REQUEST
-    # -----------------------
+    # Delete friend request
     async def reject(self, user_id: int, other_id: int, jwt: str):
 
         body = {
@@ -74,28 +65,41 @@ class FriendsAPI:
         }
 
         async with httpx.AsyncClient() as client:
-            r = await client.put(
+            r = await client.delete(
                 f"{self.base}/v2/users/{user_id}/friend-requests/{other_id}",
                 json=body
             )
             return r.json()
 
+    # Reject friend request
+    # async def reject(self, user_id: int, other_id: int, jwt: str):
 
-    # -----------------------
-    # LIST FRIENDS
-    # -----------------------
+    #     body = {
+    #         "decision": "reject",
+    #         "auth": {
+    #             "user_id": user_id,
+    #             "jwt": jwt,
+    #         }
+    #     }
+
+    #     async with httpx.AsyncClient() as client:
+    #         r = await client.put(
+    #             f"{self.base}/v2/users/{user_id}/friend-requests/{other_id}",
+    #             json=body
+    #         )
+    #         return r.json()
+
+
+    
     async def list_friends(self, user_id: int):
         async with httpx.AsyncClient() as client:
             r = await client.get(f"{self.base}/v2/users/{user_id}/friends/")
             return r.json()["friends"]            # list of friend user objects
 
 
-    # -----------------------
-    # DELETE FRIEND
-    # -----------------------
     async def delete_friend(self, user_id: int, friend_id: int, jwt: str):
 
-        body = {                                  # requires auth object
+        body = {                                
             "auth": {
                 "user_id": user_id,
                 "jwt": jwt,

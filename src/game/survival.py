@@ -41,7 +41,7 @@ class SurvivalStats:
         
     def is_game_over(self) -> bool:
         """Check if the game is over (no lives left)"""
-        return self.lives <= 0
+        return self.lives <= 0 # is this supposed to be <= ? -BS
 
 
 def survival_mode():

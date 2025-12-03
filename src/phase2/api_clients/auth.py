@@ -8,9 +8,7 @@ class AuthAPI:
         self.base = base_url                        # backend base URL
 
 
-    # -----------------------
     # LOGIN (returns JWT)
-    # -----------------------
     async def login(self, user_id: int, password: str):
         expiry = (datetime.utc() + timedelta(minutes=45))     # expiry timestamp
 
@@ -24,14 +22,12 @@ class AuthAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.post(f"{self.base}/v2/authentications", json=body)
-            if r.status_code != 200:                             # bad password?
+            if r.status_code != 200:                            
                 return None
             return r.json()["jwt"]                              # return token
 
 
-    # -----------------------
     # LOGOUT (delete JWT)
-    # -----------------------
     async def logout(self, jwt: str):
         async with httpx.AsyncClient() as client:
             await client.delete(f"{self.base}/v2/authentications", json={"jwt": jwt})

@@ -9,6 +9,7 @@ from phase2.account_ui import SESSION
 from phase2.country import Country
 from phase2.round import GuessFeedback, RoundStats
 
+
 # NiceGUI elements go here
 
 # display the game (guess input, guess feedback, timer, # of guesses, etc.)
