@@ -1,5 +1,6 @@
 import httpx
 
+
 class UserAPI:
     def __init__(self, base_url="http://localhost:8000"):
         self.base = base_url

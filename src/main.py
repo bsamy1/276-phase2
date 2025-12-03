@@ -1,7 +1,7 @@
 import logging
 import os
 
-from nicegui import app, ui
+from nicegui import ui
 from nicegui.events import KeyEventArguments
 
 from game import game_ui
