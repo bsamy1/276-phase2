@@ -1,3 +1,4 @@
 [submodule "user_service"]
 	path = user_service
-	url = https://github.com/CMPT-276-Group5/user_service.git 
+	url = https://github.com/CMPT-276-Group5/user_service.git
+	branch = deployment

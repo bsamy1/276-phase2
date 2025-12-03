@@ -47,7 +47,11 @@ class RoundStats:
     guess_error: Event
     round_length: timedelta
 
-    def __init__(self, mode: str, user_id: int = None):
+    def __init__(
+        self,
+        mode: str,
+        user_id: int = None,
+    ):
         self.guesses = 0
         self.guessed_names = []
         self.max_guesses = MAX_GUESSES

@@ -1,13 +1,15 @@
 import logging
 import os
 
-from nicegui import ui
+from admin import main as admin
+from fastapi import Depends
+from nicegui import app, ui
 from nicegui.events import KeyEventArguments
 
-from game import game_ui
 from game.analytics_ui import session_analytics_page
+from game import game_ui, init_repos
+from game import leaderboard_ui as leaderboard_ui
 from game.daily import get_daily_country
-from game.leaderboard_ui import leaderboard_page
 from local_repos.auth import LocalAuthRepo
 from local_repos.friends import LocalFriendsRepo
 from local_repos.stats import LocalStatisticsRepo
@@ -21,7 +23,6 @@ stats_repo = LocalStatisticsRepo()
 
 account_ui(user_repo, friends_repo, auth_repo, stats_repo)
 logger = logging.getLogger("phase2")
-
 
 
 class LogElementHandler(logging.Handler):
@@ -46,7 +47,7 @@ FORMAT = logging.Formatter(
 
 
 @ui.page("/")
-def index_page():
+def index_page(repos=Depends(init_repos)):
     # Code to allow a log window to be displayed during the game by pressing 'l'
     def enable_logger():
         log_window.visible = not log_window.visible
@@ -83,14 +84,17 @@ def index_page():
     game_ui.content()
 
 
-
-@ui.page("/leaderboard")
-def _():
-    leaderboard_page()
-
 @ui.page("/session-analytics")
 def _():
     session_analytics_page()
 
 
 ui.run(title="CMPT276 Project", dark=None)
+app.include_router(admin.router)
+app.include_router(leaderboard_ui.router)
+ui.run(
+    title="CMPT276 Project",
+    dark=None,
+    port=int(os.getenv("PORT", 8080)),
+    storage_secret=(os.getenv("STORAGE_SECRET", "placeholder")),
+)

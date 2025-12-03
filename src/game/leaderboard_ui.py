@@ -1,33 +1,32 @@
+import logging
 from typing import Any, Dict, List
 
-import httpx  # Will update to getting directly from DB once wired
-from nicegui import ui
+from fastapi import Depends
+from nicegui import APIRouter, ui
 
-from phase2.leaderboard import get_leaderboard_repository
+from game import repos
+from phase2.leaderboard import (
+    LeaderboardEntrySchema,
+    LeaderboardRepository,
+    get_leaderboard_repository,
+)
 
-API_BASE_URL = "http://localhost:8000" 
+logger = logging.getLogger("game.leaderboard_ui")
+router = APIRouter(prefix="/leaderboard")
 
 
-def fetch_leaderboard() -> List[Dict[str, Any]]:
+async def fetch_leaderboard():
     """Try to fetch leaderboard from backend; fallback to fake data."""
+    leaderboard_repo: LeaderboardRepository = repos["leaderboard_repo"]
+    entry_models = await leaderboard_repo.get_all()
 
-    try:
-        with httpx.Client(base_url=API_BASE_URL, timeout=2.0) as client:
-            response = client.get("/leaderboard")
-            response.raise_for_status()
-            entries = response.json()
-
-        entries.sort(key=lambda e: e["daily_streak"], reverse=True)
-        for i, e in enumerate(entries, start=1):
-            e["rank"] = i
-
+    entries = []
+    if entry_models:
+        for entry in entry_models:
+            entries.append(LeaderboardEntrySchema.from_db_model(entry).model_dump())
         return entries
 
-    except Exception:
-        # Backend is missing / unreachable → fallback to fake
-        pass
-
-    # Fake data 
+    # Fake data
     rows: List[Dict[str, Any]] = [
         {
             "entry_id": 1,
@@ -57,7 +56,7 @@ def fetch_leaderboard() -> List[Dict[str, Any]]:
             "average_daily_guesses": 2,
             "average_daily_time": "19.7s",
             "longest_survival_streak": 20,
-                       "high_score": 2005,
+            "high_score": 2005,
         },
         {
             "entry_id": 4,
@@ -71,86 +70,106 @@ def fetch_leaderboard() -> List[Dict[str, Any]]:
         },
     ]
 
-    # sort by daily streak + rank
-    rows.sort(key=lambda e: e["daily_streak"], reverse=True)
-    for i, e in enumerate(rows, start=1):
-        e["rank"] = i
-
     return rows
 
 
-def leaderboard_page() -> None:
+@router.page("/")
+async def leaderboard_page(
+    leaderboard_repo: LeaderboardRepository = Depends(get_leaderboard_repository),
+):
     ui.label("Leaderboard").classes("text-3xl font-bold mb-4")
 
     columns = [
         {"name": "rank", "label": "Rank", "field": "rank", "sortable": True},
         {"name": "user_id", "label": "User_ID", "field": "user_id", "sortable": True},
-        {"name": "daily_streak", "label": "Daily Streak", 
-         "field": "daily_streak", "sortable": True},
-        {"name": "longest_daily_streak", "label": "Longest Daily Streak", 
-         "field": "longest_daily_streak", "sortable": True},
-        {"name": "average_daily_guesses", "label": "Avg Guesses", 
-         "field": "average_daily_guesses", "sortable": True},
-        {"name": "average_daily_time", "label": "Avg Time", 
-         "field": "average_daily_time", "sortable": True},
-        {"name": "longest_survival_streak", "label": "Survival Streak", \
-         "field": "longest_survival_streak", "sortable": True},
-        {"name": "high_score", "label": "High Score", 
-         "field": "high_score", "sortable": True},
+        {
+            "name": "daily_streak",
+            "label": "Daily Streak",
+            "field": "daily_streak",
+            "sortable": True,
+        },
+        {
+            "name": "longest_daily_streak",
+            "label": "Longest Daily Streak",
+            "field": "longest_daily_streak",
+            "sortable": True,
+        },
+        {
+            "name": "average_daily_guesses",
+            "label": "Avg Guesses",
+            "field": "average_daily_guesses",
+            "sortable": True,
+        },
+        {
+            "name": "average_daily_time",
+            "label": "Avg Time",
+            "field": "average_daily_time",
+            "sortable": True,
+        },
+        {
+            "name": "longest_survival_streak",
+            "label": "Survival Streak",
+            "field": "longest_survival_streak",
+            "sortable": True,
+        },
+        {"name": "high_score", "label": "High Score", "field": "high_score", "sortable": True},
     ]
+    new_rows = await fetch_leaderboard()
 
     table = ui.table(
         columns=columns,
-        rows=fetch_leaderboard(),  
+        rows=new_rows,
         row_key="entry_id",
     ).classes("w-full")
 
-    def load_data():
-        table.rows = fetch_leaderboard()
+    async def load_data():
+        table.rows = await fetch_leaderboard()
 
-    def load_friends_leaderboard():
+    async def load_friends_leaderboard():
         user_id = 1
-        new_rows = fetch_friends_leaderboard(user_id)
+        new_rows = await fetch_friends_leaderboard(leaderboard_repo, user_id)
         print(new_rows)
         table.rows = new_rows
 
     ui.button("Refresh", on_click=load_data).classes("mt-4")
     ui.button("Load friends leaderboard", on_click=load_friends_leaderboard)
 
-def fetch_friends_leaderboard(user_id: int | None):
+
+async def fetch_friends_leaderboard(leaderboard_repo: LeaderboardRepository, user_id: int | None):
     """Fetch friends-only leaderboard data using Leaderboard class."""
     print("called")
     if not user_id:
         user_id = 1
 
-    try:
-        lb = get_leaderboard_repository()
-        entries = lb.get_friends_entries(user_id)
-    except AttributeError:
-        entries = [{
-            "entry_id": 3,
-            "user_id": "Amy",
-            "daily_streak": 10,
-            "longest_daily_streak": 12,
-            "average_daily_guesses": 2,
-            "average_daily_time": "19.7s",
-            "longest_survival_streak": 20,
-                       "high_score": 2005,
-        },
-        {
-            "entry_id": 4,
-            "user_id": "Dave",
-            "daily_streak": 0,
-            "longest_daily_streak": 1,
-            "average_daily_guesses": 5,
-            "average_daily_time": "42.0s",
-            "longest_survival_streak": 4,
-            "high_score": 980,
-        },]
-    
+    entries = await leaderboard_repo.get_friends_entries(user_id)
+    if entries:
+        return entries
+
+        entries = [
+            {
+                "entry_id": 3,
+                "user_id": "Amy",
+                "daily_streak": 10,
+                "longest_daily_streak": 12,
+                "average_daily_guesses": 2,
+                "average_daily_time": "19.7s",
+                "longest_survival_streak": 20,
+                "high_score": 2005,
+            },
+            {
+                "entry_id": 4,
+                "user_id": "Dave",
+                "daily_streak": 0,
+                "longest_daily_streak": 1,
+                "average_daily_guesses": 5,
+                "average_daily_time": "42.0s",
+                "longest_survival_streak": 4,
+                "high_score": 980,
+            },
+        ]
+
     return entries
 
-        
 
 if __name__ in {"__main__", "__mp_main__"}:
     leaderboard_page()

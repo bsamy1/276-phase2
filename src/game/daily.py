@@ -2,9 +2,11 @@ import logging
 import random
 from datetime import date
 
+from nicegui import app
+
+from phase2.account_ui import SESSION_STORAGE_NAME as USER_SESSION_STORAGE
 from phase2.country import Country, get_country, get_random_country
 from phase2.round import GuessFeedback, RoundStats
-from phase2.statistics import get_statistics_repository
 
 logger = logging.getLogger("phase2.daily")
 
@@ -137,22 +139,21 @@ async def end_game(won: bool, round_stats: RoundStats):
     on to be processed in statistics.py, and show a breakdown of this game's
     stats to the user
     """
-    if hasattr(round_stats, "stats_repo"):
-        stats_repo = round_stats.stats_repo
-    else:
-        stats_repo = get_statistics_repository()
 
     round_stats.end_round()
     round_stats.won = won
     logger.info("Round stats:")
     logger.info(vars(round_stats))
 
-    # TODO (milestone 2): Get the user id of the currently playing user, if there is one
-    round_stats.user_id = 0
     # TODO (milestone 3): Add in the number of survival rounds completed
 
-    # Add round to the round stats database (currently with placeholder user id)
-    await stats_repo.add_round(round_stats)
+    # Get the user id of the currently playing user, if there is one
+    user_session = app.storage.user.get(USER_SESSION_STORAGE, False)
+    if user_session:
+        print(user_session)
+        round_stats.user_id = user_session["user"].id
+        # Add round to the round stats database
+        await round_stats.stats_repo.add_round(round_stats)
 
     # Show game stats in UI
     round_stats.game_ended.emit(won)
