@@ -5,7 +5,6 @@ from datetime import date
 from phase2.country import Country, get_country, get_random_country
 from phase2.round import GuessFeedback, RoundStats
 from phase2.statistics import get_statistics_repository
-from unittest.mock import AsyncMock
 
 logger = logging.getLogger("phase2.daily")
 

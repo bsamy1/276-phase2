@@ -2,7 +2,6 @@
 Tests all execution paths in game/daily.py. Notably, compare_countries() does not need to be tested,
 since every path it can take it covered by the handle_guess() tests.
 """
-import os
 
 from unittest.mock import MagicMock, patch
 
