@@ -78,7 +78,6 @@ def _():
     survival_content()
 
 
-ui.run(title="CMPT276 Project", dark=None)
 app.include_router(admin.router)
 app.include_router(leaderboard_ui.router)
 app.include_router(account_ui.router)
