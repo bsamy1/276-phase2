@@ -149,10 +149,10 @@ async def end_game(won: bool, round_stats: RoundStats):
     # TODO (milestone 3): Add in the number of survival rounds completed
 
     # Get the user id of the currently playing user, if there is one
-    user_session = app.storage.user.get(USER_SESSION_STORAGE, False)
-    if user_session:
-        print(user_session)
-        round_stats.user_id = user_session["user"].id
+    user_id = app.storage.user.get(USER_SESSION_STORAGE + "_user", False)
+    if user_id:
+        print(user_id)
+        round_stats.user_id = user_id
         # Add round to the round stats database
         stats_repo = repos["stats_repo"]
         await stats_repo.add_round(round_stats)
