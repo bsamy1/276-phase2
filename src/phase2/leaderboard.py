@@ -1,13 +1,13 @@
 from datetime import timedelta
 
+from fastapi import Depends
 from pydantic import BaseModel
-from shared.database import Base, get_db
-from sqlalchemy import Integer, Interval, Sequence, select
+from sqlalchemy import Float, Integer, Sequence, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from phase2.friends import Friendship
-
+from user_service.models.friends import get_friendship_repository
+from shared.database import Base, get_db
 
 class LeaderboardEntry(Base):
     __tablename__ = "leaderboard_entry"
@@ -24,17 +24,16 @@ class LeaderboardEntry(Base):
         Integer, default=0
     )  # highest daily streak ever recorded
     average_daily_guesses: Mapped[int] = mapped_column(Integer, default=0)
-    average_daily_time: Mapped[timedelta] = mapped_column(
-        Interval,  default=timedelta(seconds=0)
+    average_daily_time: Mapped[float] = mapped_column(
+        Float, default=0
     )  # average time to complete the daily in seconds
     longest_survival_streak: Mapped[int] = mapped_column(Integer, default=0)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
-class Leaderboard:
-    def __init__(self, session: Session, stats_repo=None):
+class LeaderboardRepository:
+    def __init__(self, session: Session):
         self.session = session
-        self.stats_repo = stats_repo
 
     async def sync_user_entry(self, user_id: int) -> LeaderboardEntry | None:
         """
@@ -137,27 +136,30 @@ class Leaderboard:
 
         return self.session.execute(stmt).scalars().all()
 
-    def get_friends_entries(self, user_id: int) -> list[LeaderboardEntry]:
+    async def get_friend_entries(self, user_id: int, db: Session) -> list[LeaderboardEntry]:
         """
         Get all leaderboard entries for the given user's friends only
         (including the given user)
         """
+        friendship_repo = get_friendship_repository(db)
 
         # Get friend IDs 
-        stmt = select(Friendship.friend_id).where(Friendship.user_id == user_id)
-        friend_ids = self.session.execute(stmt).scalars().all()
+        friend_ids = await friendship_repo.list_friend_ids(user_id)
 
-        # Always include the user's own ID
+         # 2. Always include the user themself
         friend_ids.append(user_id)
 
-        # Remove duplicates 
+        # 3. Remove duplicates
         friend_ids = list(set(friend_ids))
 
-        # Query leaderboard entries for the 
-        stmt = select(LeaderboardEntry).where(LeaderboardEntry.user_id.in_(friend_ids))
+        # 4. Query leaderboard entries for those IDs
+        stmt = (
+            select(LeaderboardEntry)
+            .where(LeaderboardEntry.user_id.in_(friend_ids))
+        )
         entries = self.session.execute(stmt).scalars().all()
 
-        #  Sort by score descending
+        # 5. Sort by score (descending)
         entries.sort(key=lambda e: e.score, reverse=True)
 
         return entries
@@ -179,7 +181,6 @@ class Leaderboard:
 
         return entry.score
 
-
 class LeaderboardEntrySchema(BaseModel):
     id: int
     user_id: int
@@ -190,6 +191,5 @@ class LeaderboardEntrySchema(BaseModel):
     longest_survival_streak: int
 
 
-def get_leaderboard_repository() -> Leaderboard:
-    db = get_db()
-    return Leaderboard(session=db)
+def get_leaderboard_repository(db: Session = Depends(get_db)) -> LeaderboardRepository:
+    return LeaderboardRepository(db)

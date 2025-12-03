@@ -1,12 +1,12 @@
 from datetime import date, timedelta
 
 import pytest
+from phase2.friends import Friendship
 from shared.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from phase2.friends import Friendship
-from phase2.leaderboard import Leaderboard, LeaderboardEntry
+from phase2.leaderboard import LeaderboardRepository, LeaderboardEntry
 from phase2.statistics import RoundStatistics
 
 
@@ -30,7 +30,7 @@ def session(engine):
 
 @pytest.fixture(scope="function")
 def repo(session):
-    yield Leaderboard(session)
+    yield LeaderboardRepository(session)
 
 
 class FakeStats:

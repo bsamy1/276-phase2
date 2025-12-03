@@ -61,3 +61,4 @@ class LocalUserRepo:
 
     async def get_all(self) -> List[LocalUser]:
         return list(self.users.values())
+

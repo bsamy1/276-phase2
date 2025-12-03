@@ -149,7 +149,7 @@ async def end_game(won: bool, round_stats: RoundStats):
     # TODO (milestone 3): Add in the number of survival rounds completed
 
     # Add round to the round stats database (currently with placeholder user id)
-    await stats_repo.add_round(round_stats)
+    # await stats_repo.add_round(round_stats)
 
     # Show game stats in UI
     round_stats.game_ended.emit(won)

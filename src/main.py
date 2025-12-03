@@ -1,12 +1,11 @@
 import logging
 import os
 
-from nicegui import ui
+from nicegui import app, ui
 from nicegui.events import KeyEventArguments
 
 from game import game_ui
 from game.daily import get_daily_country
-from game.leaderboard_ui import leaderboard_page
 from local_repos.auth import LocalAuthRepo
 from local_repos.friends import LocalFriendsRepo
 from local_repos.stats import LocalStatisticsRepo
@@ -20,8 +19,6 @@ stats_repo = LocalStatisticsRepo()
 
 account_ui(user_repo, friends_repo, auth_repo, stats_repo)
 logger = logging.getLogger("phase2")
-
-
 
 class LogElementHandler(logging.Handler):
     """A logging handler that emits messages to a log element."""
@@ -82,10 +79,10 @@ def index_page():
     game_ui.content()
 
 
-
-@ui.page("/leaderboard")
-def _():
-    leaderboard_page()
-
-
-ui.run(title="CMPT276 Project", dark=None)
+# app.include_router(admin.router)
+ui.run(
+    title="CMPT276 Project",
+    dark=None,
+    port=int(os.getenv("PORT", 8080)),
+    storage_secret=(os.getenv("STORAGE_SECRET", "placeholder")),
+)

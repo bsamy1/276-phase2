@@ -11,6 +11,14 @@ from local_repos.friends import LocalFriendsRepo
 from local_repos.stats import LocalStatisticsRepo
 from local_repos.users import LocalUserRepo
 
+from phase2.api_clients.auth import AuthAPI
+from phase2.api_clients.friends import FriendsAPI
+
+# changing it so it fetches from api instead of local repo
+from phase2.api_clients.users import UserAPI
+
+# from phase2.api_clients.stats import StatsAPI
+
 DEFAULT_AVATAR = Path("avatars/default.jpg")
 AVATAR_DIR = Path("avatars")
 AVATAR_DIR.mkdir(exist_ok=True)
@@ -25,12 +33,17 @@ SESSION = {
     "token": None,
 }
 
-async def local_authenticate(user_repo, username: str, password: str):
+user_client = UserAPI()
+auth_client = AuthAPI()
+friends_repo = FriendsAPI()
+
+async def local_authenticate(user_client, username: str, password: str):
     """
     Authenticate a user using LocalUserRepo.
     Returns the LocalUser object if valid, otherwise None.
     """
-    user = await user_repo.get_by_name(username)
+
+    user = await user_client.get_by_name(username)
     if not user:
         return None
 
@@ -64,6 +77,7 @@ def account_ui(
     auth_repo: LocalAuthRepo, 
     stats_repo: LocalStatisticsRepo
 ):
+    
     async def ensure_authenticated():
         if TEST:
             return True
@@ -103,6 +117,7 @@ def account_ui(
             password = ui.input("Password", password=True)
 
             async def try_login():
+
                 user = await local_authenticate(user_repo, username.value, password.value)
                 if not user:
                     ui.notify("Invalid credentials", color="red")
@@ -129,21 +144,35 @@ def account_ui(
             username = ui.input("Username")
             email = ui.input("Email")
             password = ui.input("Password", password=True)
+           
+        async def try_create():
+            response = await user_client.create(username.value, email.value, password.value)
+            new_user = await user_repo.create(username.value, email.value, password.value)
 
-            async def try_create():
-                new_user = await user_repo.create(username.value, email.value, password.value)
-                if not new_user:
+            if not new_user:
                     ui.notify("Username or email already exists", color="red")
                     return
-                
-                token = await auth_repo.create(new_user.id)
-                SESSION["user"] = new_user
-                SESSION["token"] = token
-                ui.navigate.to("/account")
 
-            ui.button("Register", on_click=try_create).classes("w-full")
-            ui.button("Back", on_click=lambda: ui.navigate.to("/login")
-                      ).classes("w-full mt-2")
+            if response.status_code != 201:
+                ui.notify("User already exists or invalid", color="red")
+                return
+            
+            print("This line is getting parsed")
+            user_data = response.json()     # What your FastAPI returns
+
+            token = await auth_repo.create(new_user.id)
+            SESSION["user"] = user_data      # optional, depending on your API
+            SESSION["token"] = None          # later when you add login API
+
+
+            ui.notify("Account created!", color="green")    
+            ui.navigate.to("/login")
+        
+            # Register button
+        ui.button("Register", on_click=lambda: try_create()
+            ).classes("w-full mt-2")
+        ui.button("Back", on_click=lambda: ui.navigate.to("/login")
+                    ).classes("w-full mt-4")
 
 
     """ 
@@ -209,7 +238,7 @@ def account_ui(
             pw_input = ui.input("New Password (optional)", password=True)
 
             async def save_profile():
-                await user_repo.update_user(
+                await user_client.update_user(
                     user.id,
                     name=name_input.value,
                     email=email_input.value,
@@ -268,6 +297,7 @@ def account_ui(
             friend_name_input = ui.input("Friend username")
 
             async def send_request():
+
                 target =  await user_repo.get_by_name(friend_name_input.value)
                 if not target:
                     ui.notify("User not found.", color="red")
@@ -289,6 +319,7 @@ def account_ui(
                 ui.label("No pending requests.")
 
             for req in requests:
+
                 requestor = await user_repo.get_by_id(req.requestor_id)
                 with ui.row().classes("w-full justify-between"):
                     ui.label(requestor.name)
@@ -323,7 +354,7 @@ def account_ui(
     STATISTICS PAGE
     
     show user statistics
-    """
+    # """
     @ui.page("/account/stats")
     async def stats_page():
         if not await ensure_authenticated():

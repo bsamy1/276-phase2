@@ -62,7 +62,7 @@ def fetch_leaderboard() -> List[Dict[str, Any]]:
         {
             "entry_id": 4,
             "user_id": "Dave",
-            "daily_streak": 0,
+            "daily_streak": 1,
             "longest_daily_streak": 1,
             "average_daily_guesses": 5,
             "average_daily_time": "42.0s",
@@ -140,7 +140,7 @@ def fetch_friends_leaderboard(user_id: int | None):
         {
             "entry_id": 4,
             "user_id": "Dave",
-            "daily_streak": 0,
+            "daily_streak": 1,
             "longest_daily_streak": 1,
             "average_daily_guesses": 5,
             "average_daily_time": "42.0s",
