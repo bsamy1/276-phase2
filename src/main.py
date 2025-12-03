@@ -6,6 +6,7 @@ from fastapi import Depends
 from nicegui import app, ui
 from nicegui.events import KeyEventArguments
 
+from game.analytics_ui import session_analytics_page
 from game import game_ui, init_repos
 from game import leaderboard_ui as leaderboard_ui
 from game.daily import get_daily_country
@@ -83,6 +84,12 @@ def index_page(repos=Depends(init_repos)):
     game_ui.content()
 
 
+@ui.page("/session-analytics")
+def _():
+    session_analytics_page()
+
+
+ui.run(title="CMPT276 Project", dark=None)
 app.include_router(admin.router)
 app.include_router(leaderboard_ui.router)
 ui.run(
