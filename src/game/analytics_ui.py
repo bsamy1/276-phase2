@@ -1,9 +1,9 @@
 
-from nicegui import ui
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List
 
 import httpx
+from nicegui import ui
 
 API_BASE_URL = "http://localhost:8000"  # same style as leaderboard
 
