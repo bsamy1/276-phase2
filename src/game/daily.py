@@ -5,6 +5,7 @@ from datetime import date
 from phase2.country import Country, get_country, get_random_country
 from phase2.round import GuessFeedback, RoundStats
 from phase2.statistics import get_statistics_repository
+from unittest.mock import AsyncMock
 
 logger = logging.getLogger("phase2.daily")
 
@@ -137,7 +138,10 @@ async def end_game(won: bool, round_stats: RoundStats):
     on to be processed in statistics.py, and show a breakdown of this game's
     stats to the user
     """
-    stats_repo = get_statistics_repository()
+    if hasattr(round_stats, "stats_repo"):
+        stats_repo = round_stats.stats_repo
+    else:
+        stats_repo = get_statistics_repository()
 
     round_stats.end_round()
     round_stats.won = won
