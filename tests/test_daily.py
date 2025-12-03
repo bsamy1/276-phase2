@@ -2,6 +2,7 @@
 Tests all execution paths in game/daily.py. Notably, compare_countries() does not need to be tested,
 since every path it can take it covered by the handle_guess() tests.
 """
+import os
 
 from unittest.mock import MagicMock, patch
 
@@ -110,6 +111,8 @@ async def test_win_game(round_stats, mocked_stats_repo):
     round_stats.game_ended.emit = MagicMock()
     round_stats.end_round = MagicMock()
 
+    round_stats.stats_repo = mocked_stats_repo
+
     await end_game(True, round_stats)
 
     round_stats.game_ended.emit.assert_called_once_with(True)
@@ -119,6 +122,8 @@ async def test_win_game(round_stats, mocked_stats_repo):
 async def test_lose_game(round_stats, mocked_stats_repo):
     round_stats.game_ended.emit = MagicMock()
     round_stats.end_round = MagicMock()
+
+    round_stats.stats_repo = mocked_stats_repo
 
     await end_game(False, round_stats)
 
