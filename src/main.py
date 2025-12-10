@@ -12,6 +12,10 @@ from local_repos.stats import LocalStatisticsRepo
 from local_repos.users import LocalUserRepo
 from phase2.account_ui import account_ui
 
+import os
+
+PORT = int(os.environ.get("PORT", 8080))
+
 user_repo = LocalUserRepo()
 friends_repo = LocalFriendsRepo(user_repo)
 auth_repo = LocalAuthRepo()
@@ -85,4 +89,5 @@ ui.run(
     dark=None,
     port=int(os.getenv("PORT", 8080)),
     storage_secret=(os.getenv("STORAGE_SECRET", "placeholder")),
+    host="0.0.0.0", port=PORT,
 )
