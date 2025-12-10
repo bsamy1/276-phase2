@@ -72,22 +72,22 @@ class FriendsAPI:
             return r.json()
 
     # Reject friend request
-    # async def reject(self, user_id: int, other_id: int, jwt: str):
+    async def reject(self, user_id: int, other_id: int, jwt: str):
 
-    #     body = {
-    #         "decision": "reject",
-    #         "auth": {
-    #             "user_id": user_id,
-    #             "jwt": jwt,
-    #         }
-    #     }
+        body = {
+            "decision": "reject",
+            "auth": {
+                "user_id": user_id,
+                "jwt": jwt,
+            }
+        }
 
-    #     async with httpx.AsyncClient() as client:
-    #         r = await client.put(
-    #             f"{self.base}/v2/users/{user_id}/friend-requests/{other_id}",
-    #             json=body
-    #         )
-    #         return r.json()
+        async with httpx.AsyncClient() as client:
+            r = await client.put(
+                f"{self.base}/v2/users/{user_id}/friend-requests/{other_id}",
+                json=body
+            )
+            return r.json()
 
 
     
