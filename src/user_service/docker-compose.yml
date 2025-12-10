@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persists data to a named volume
+    networks:
+      custom_network:
+        ipv4_address: 10.5.0.2
+  
+  redis:                   # ← make Redis its own service
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "6379:6379"
+    networks:
+      custom_network:
+        ipv4_address: 10.5.0.3
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_HOST: db # The service name of your Postgres container
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      AUTH_TTL_SECONDS: ${AUTH_TTL_SECONDS:-900}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    networks:
+      custom_network:
+        ipv4_address: 10.5.0.4
+
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./
+          target: /app/
+          ignore:
+            - alembic/
+            - .git/
+            - .github/
+    volumes:
+      - ./alembic:/app/alembic
+
+volumes:
+  postgres_data: # Defines the named volume for data persistence
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
